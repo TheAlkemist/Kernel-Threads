@@ -532,3 +532,41 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+int join(void **stack)
+{
+  struct proc *p;
+  int havekids,id;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+   if(p->parent != curproc)
+      continue;
+   havekids = 1;   
+   if(p->state==ZOMBIE)
+   {
+    *stack = p->kstack;
+    id = p->pid;
+    kfree(p->kstack);
+    p->kstack = 0;
+    p->pid = 0;
+    p->state = UNUSED;
+    p->parent = 0;
+    p->name[0] = 0;
+    p->killed = 0;
+    release(&ptable.lock);
+    return id;
+   }
+  }
+
+  if(!havekids || curproc->killed){
+    release(&ptable.lock);
+    return -1;
+  }
+
+  sleep(curproc, &ptable.lock);
+}
+}
