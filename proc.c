@@ -572,7 +572,8 @@ int join(void **stack)
 }
 
 int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
-   int i, pid;
+   int i;
+   int pid;
    struct proc *np;
    struct proc *curproc = myproc();
 
@@ -590,13 +591,23 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
      return -1;
    }
 */
-   np->pgdir = curproc->pgdir;
+   
+
    np->sz = curproc->sz;
    np->parent = curproc;
    *np->tf = *curproc->tf;
-
-   // Clear %eax so that fork returns 0 in the child.
+   np->stack = stack;
+   np->pgdir = curproc->pgdir;
+   
+   // Clear %eax so that clone returns 0 in the child.
    np->tf->eax = 0;
+   np->tf->eip = (int)fcn;
+   np->tf->esp =(uint)stack + PGSIZE - 4;
+   //*((uint*)(np->tf->esp)) = (uint)arg1;
+   //*((uint*)(np->tf->esp)-4) = (uint)arg2;
+   *((uint*)(np->tf->esp)-8) = 0xFFFFFFFF;
+   np->tf->esp = (np->tf->esp)-4;
+   np->tf->esp = (np->tf->esp)-4;
 
    for(i = 0; i < NOFILE; i++)
      if(curproc->ofile[i])
@@ -604,7 +615,7 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    np->cwd = idup(curproc->cwd);
 
    safestrcpy(np->name, curproc->name, sizeof(curproc->name));
-
+   
    pid = np->pid;
 
    acquire(&ptable.lock);

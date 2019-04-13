@@ -99,24 +99,24 @@ sys_join(void **stack)
 int
 sys_clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack)
 {
-  int func;
-  int a1;
-  int a2;
-  int stk;
+  void (*func)(void *, void *);
+  void *a1;
+  void *a2;
+  void *stk;
 
-  if(argint(0, &func)<0){
+  if(argptr(0, (void*)&func, sizeof(void*))<0){
     return -1;
   }
-  if(argint(1, &a1)<0){
+  if(argptr(1, (void*)&a1, sizeof(void*))<0){
     return -1;
   }
-  if(argint(2, &a2)<0){
+  if(argptr(2, (void*)&a2, sizeof(void*))<0){
     return -1;
   }
-  if(argint(0, &stk)<0){
+  if(argptr(3, (void*)&stk, sizeof(void*))<0){
     return -1;
   }
 
-  return clone((void *)func, (void *)arg1, (void *)arg2, (void *)stk);
+  return clone(func, arg1, arg2, stk);
 
 }
