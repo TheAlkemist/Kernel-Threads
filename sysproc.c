@@ -90,7 +90,33 @@ sys_uptime(void)
   return xticks;
 }
 
-int sys_join(void **stack)
+int
+sys_join(void **stack)
 {
   return join(stack);
+}
+
+int
+sys_clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack)
+{
+  int func;
+  int a1;
+  int a2;
+  int stk;
+
+  if(argint(0, &func)<0){
+    return -1;
+  }
+  if(argint(1, &a1)<0){
+    return -1;
+  }
+  if(argint(2, &a2)<0){
+    return -1;
+  }
+  if(argint(0, &stk)<0){
+    return -1;
+  }
+
+  return clone((void *)func, (void *)arg1, (void *)arg2, (void *)stk);
+
 }
