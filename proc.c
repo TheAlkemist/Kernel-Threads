@@ -541,14 +541,16 @@ int join(void **stack)
 
   acquire(&ptable.lock);
   for(;;){
-
+  havekids = 0;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-   if(p->parent != curproc)
+   if(p->parent != curproc  || p->pgdir != curproc->pgdir)
       continue;
-   havekids = 1;   
+   havekids = 1;
+   if(p->state!= ZOMBIE)
+      continue;   
    if(p->state==ZOMBIE)
    {
-    *stack = p->kstack;
+    *stack = p->stack;
     id = p->pid;
     kfree(p->kstack);
     p->kstack = 0;
@@ -577,6 +579,14 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    struct proc *np;
    struct proc *curproc = myproc();
 
+   if(((uint)stack % PGSIZE != 0)){
+     return -1;
+   }
+   
+   if ((curproc->sz - (uint)stack < PGSIZE)){
+     return -1;
+   }
+
    // Allocate process.
    if((np = allocproc()) == 0){
      return -1;
@@ -596,18 +606,20 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    np->sz = curproc->sz;
    np->parent = curproc;
    *np->tf = *curproc->tf;
-   np->stack = stack;
+
    np->pgdir = curproc->pgdir;
    
    // Clear %eax so that clone returns 0 in the child.
    np->tf->eax = 0;
    np->tf->eip = (int)fcn;
    np->tf->esp =(uint)stack + PGSIZE - 4;
-   //*((uint*)(np->tf->esp)) = (uint)arg1;
-   //*((uint*)(np->tf->esp)-4) = (uint)arg2;
+   *((uint*)(np->tf->esp)) = (uint)arg1;
+   *((uint*)(np->tf->esp)-4) = (uint)arg2;
    *((uint*)(np->tf->esp)-8) = 0xFFFFFFFF;
    np->tf->esp = (np->tf->esp)-4;
    np->tf->esp = (np->tf->esp)-4;
+
+   np->stack = stack;
 
    for(i = 0; i < NOFILE; i++)
      if(curproc->ofile[i])

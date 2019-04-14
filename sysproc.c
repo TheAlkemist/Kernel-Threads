@@ -93,7 +93,11 @@ sys_uptime(void)
 int
 sys_join(void **stack)
 {
-  return join(stack);
+  void **stk;
+  if(argptr(0, (void*)&stk, sizeof(void*))<0){
+    return -1;
+  }
+  return join(stk);
 }
 
 int
