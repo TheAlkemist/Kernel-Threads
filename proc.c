@@ -550,15 +550,16 @@ int join(void **stack)
       continue;   
    if(p->state==ZOMBIE)
    {
-    *stack = p->stack;
+
     id = p->pid;
-    kfree(p->kstack);
-    p->kstack = 0;
+    //kfree(p->kstack);
+    //p->kstack = 0;
     p->pid = 0;
     p->state = UNUSED;
     p->parent = 0;
     p->name[0] = 0;
     p->killed = 0;
+    *stack = p->stack;
     release(&ptable.lock);
     return id;
    }
@@ -578,6 +579,9 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    int pid;
    struct proc *np;
    struct proc *curproc = myproc();
+   int istack[3];
+   //int *a;
+   //int *r;
 
    if(((uint)stack % PGSIZE != 0)){
      return -1;
@@ -602,24 +606,39 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    }
 */
    
-
    np->sz = curproc->sz;
    np->parent = curproc;
    *np->tf = *curproc->tf;
 
    np->pgdir = curproc->pgdir;
    
-   // Clear %eax so that clone returns 0 in the child.
    np->tf->eax = 0;
-   np->tf->eip = (int)fcn;
-   np->tf->esp =(uint)stack + PGSIZE - 4;
-   *((uint*)(np->tf->esp)) = (uint)arg1;
-   *((uint*)(np->tf->esp)-4) = (uint)arg2;
-   *((uint*)(np->tf->esp)-8) = 0xFFFFFFFF;
-   np->tf->esp = (np->tf->esp)-4;
-   np->tf->esp = (np->tf->esp)-4;
 
    np->stack = stack;
+
+   istack[0] = 0xFFFFFFFF;
+   istack[1] = (int)arg1;
+   istack[2] = (int)arg2;
+
+   //r = stack + 4096 - 2*sizeof(int);
+   //*r = 0xFFFFFFFF;  
+
+   //a = stack + 4096 - sizeof(int);
+   //*a = (int)arg1;
+
+   uint stackpt = (uint)stack + PGSIZE - 2*sizeof(int *);
+   np->tf->eip = (int)fcn;
+   np->tf->esp =stackpt;
+   //*((uint*)(np->tf->esp)) = (uint)arg1;
+   //*((uint*)(np->tf->esp)-4) = (uint)arg2;
+   //*((uint*)(np->tf->esp)-8) = 0xFFFFFFFF;
+   
+   //stackpt -= 2*sizeof(uint);
+ 
+   copyout(np->pgdir, stackpt, istack, 2*sizeof(int));
+   np->tf->ebp = np->tf->esp;
+
+   np->isthread = 1;
 
    for(i = 0; i < NOFILE; i++)
      if(curproc->ofile[i])
@@ -631,11 +650,8 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    pid = np->pid;
 
    acquire(&ptable.lock);
-
    np->state = RUNNABLE;
-
    release(&ptable.lock);
 
    return pid;
-
 }

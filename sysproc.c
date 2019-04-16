@@ -121,6 +121,6 @@ sys_clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack)
     return -1;
   }
 
-  return clone(func, arg1, arg2, stk);
+  return clone(func, a1, a2, stk);
 
 }
