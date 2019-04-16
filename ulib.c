@@ -4,6 +4,11 @@
 #include "user.h"
 #include "x86.h"
 
+struct lock_t{
+  int ticknum;
+  int turn;
+}
+
 char*
 strcpy(char *s, const char *t)
 {
@@ -121,19 +126,25 @@ int thread_join()
  free(stack);
  return val;
 }
-/*
+
 void lock_init(lock_t* lock)
 {
-
+  lock->ticknum = 0;
+  lock->turn = 0;
 }
 
 void lock_acquire(lock_t* lock)
 {
-
+  
 }
 
 void lock_release(lock_t* lock)
 {
-
+  
 }
-*/
+
+int fetch_and_add(uint loc, int inc){
+  int val = *loc;
+  *loc = val + inc;
+  return val;
+}
