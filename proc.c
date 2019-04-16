@@ -617,8 +617,8 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    np->stack = stack;
 
    istack[0] = 0xFFFFFFFF;
-   istack[1] = (int)arg1;
-   istack[2] = (int)arg2;
+   istack[1] = (uint)arg1;
+   istack[2] = (uint)arg2;
 
    //r = stack + 4096 - 2*sizeof(int);
    //*r = 0xFFFFFFFF;  
@@ -626,7 +626,7 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    //a = stack + 4096 - sizeof(int);
    //*a = (int)arg1;
 
-   uint stackpt = (uint)stack + PGSIZE - 2*sizeof(int *);
+   uint stackpt = (uint)stack + PGSIZE - 3*sizeof(uint *);
    np->tf->eip = (int)fcn;
    np->tf->esp =stackpt;
    //*((uint*)(np->tf->esp)) = (uint)arg1;
@@ -635,7 +635,7 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    
    //stackpt -= 2*sizeof(uint);
  
-   copyout(np->pgdir, stackpt, istack, 2*sizeof(int));
+   copyout(np->pgdir, stackpt, istack, 3*sizeof(uint));
    np->tf->ebp = np->tf->esp;
 
    np->isthread = 1;
