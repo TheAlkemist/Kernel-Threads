@@ -43,11 +43,8 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
-
-int thread_create(void(*)(void*, void*), void*, void*);
+//int thread_create(void(*)(void*, void*), void*, void*);
 int thread_join();
-/*
-void lock_init(lock_t *lock);
-void lock_acquire(lock_t *lock);
-void lock_release(lock_t *lock);
-*/
+//void lock_init(lock_t *lock);
+//void lock_acquire(lock_t *lock);
+//void lock_release(lock_t *lock);
