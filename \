@@ -106,42 +106,37 @@ memmove(void *vdst, const void *vsrc, int n)
   dst = vdst;
   src = vsrc;
   while(n-- > 0)
-    *dst++ = *src++;  
+    *dst++ = *src++;
   return vdst;
 }
 
 int thread_create(void (*start_routine)(void*, void*), void* arg1, void* arg2)
 {
-  //lock_t l;
-  //lock_init(&l);
-  //lock_acquire(&l);
+  lock_t l;
+  lock_init(&l);
+  lock_acquire(&l);
   void *stack = malloc(4096 * 2);
-  //lock_release(&l);
+  lock_release(&l);
   stack = stack + (4096 - (uint)stack % 4096);
   int id = clone(start_routine, arg1, arg2, stack);
-  //lock_release(&l);
-  
-//  if (id == 0){
-    //start_routine(arg1, arg2);
-    //free(stack);
-    //return id;
- // }
+  if (id == 0){
+    start_routine(arg1, arg2);
+    free(stack);
+    return id;
+  }
   return id;
 }
 int thread_join()
 {
- //lock_t l;
- //lock_init(&l);
- //lock_acquire(&l);
-
+ lock_t l;
  void *stack = malloc(sizeof(void*));
  int val;
  val = join(&stack);
 
-// lock_init(&l);
-// lock_acquire(&l);
+ lock_init(&l);
+ lock_acquire(&l);
  free(stack);
- //lock_release(&l);
+ lock_release(&l);
 
  return val;
 }

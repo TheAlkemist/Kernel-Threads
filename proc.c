@@ -107,11 +107,13 @@ found:
   sp -= 4;
   *(uint*)sp = (uint)trapret;
 
+  //p->noofthreads = 0;
+
   sp -= sizeof *p->context;
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
-
+  p->noofthreads = 0;
   return p;
 }
 
@@ -160,7 +162,7 @@ growproc(int n)
 {
   uint sz;
   struct proc *curproc = myproc();
-
+  acquire(&ptable.lock);
   sz = curproc->sz;
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
@@ -169,6 +171,7 @@ growproc(int n)
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
   }
+  release(&ptable.lock);
   curproc->sz = sz;
   switchuvm(curproc);
   return 0;
@@ -199,6 +202,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -211,6 +215,8 @@ fork(void)
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
   pid = np->pid;
+
+  cprintf("%d", pid);
 
   acquire(&ptable.lock);
 
@@ -249,18 +255,36 @@ exit(void)
 
   acquire(&ptable.lock);
 
+ 
+
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
-
+  
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
-      p->parent = initproc;
-      if(p->state == ZOMBIE)
-        wakeup1(initproc);
-    }
-  }
-
+      //if (p->noofthreads == 1){
+        //kfree(p->kstack);
+	//p->kstack = 0;
+        //p->state = UNUSED;
+      //}
+      //else{
+        p->parent = initproc;
+        if(p->state == ZOMBIE)
+          wakeup1(initproc);
+      }
+    } 
+    
+    //else{
+      //if(p->state == ZOMBIE){
+        //p->noofthreads -= 1;
+      //}
+      
+      
+  
+  //if (p->noofthreads == 0){
+    //sleep();
+  //}
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
   sched();
@@ -284,7 +308,7 @@ wait(void)
       if(p->parent != curproc || p->pgdir == curproc->pgdir)
         continue;
       havekids = 1;
-      if(p->state == ZOMBIE){
+      if(p->state == ZOMBIE && p->noofthreads == 0){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
@@ -550,10 +574,10 @@ int join(void **stack)
       continue;   
    if(p->state==ZOMBIE)
    {
-
+    curproc->noofthreads--;
     id = p->pid;
-    //kfree(p->kstack);
-    //p->kstack = 0;
+    kfree(p->kstack);
+    p->kstack = 0;
     p->pid = 0;
     p->state = UNUSED;
     p->parent = 0;
@@ -587,9 +611,9 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
      return -1;
    }
    
-   if ((curproc->sz - (uint)stack < PGSIZE)){
-     return -1;
-   }
+   //if ((curproc->sz - (uint)stack < PGSIZE)){
+     //return -1;
+   //}
 
    // Allocate process.
    if((np = allocproc()) == 0){
@@ -638,7 +662,7 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    copyout(np->pgdir, stackpt, istack, 3*sizeof(uint));
    np->tf->ebp = np->tf->esp;
 
-   np->isthread = 1;
+   np->noofthreads += 1;
 
    for(i = 0; i < NOFILE; i++)
      if(curproc->ofile[i])
@@ -652,6 +676,9 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
    acquire(&ptable.lock);
    np->state = RUNNABLE;
    release(&ptable.lock);
+
+   curproc->noofthreads++;
+   np->noofthreads = curproc->noofthreads;
 
    return pid;
 }

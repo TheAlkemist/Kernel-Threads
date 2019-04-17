@@ -1,4 +1,4 @@
 #!/bin/bash
 base=$PWD/tests/p4a
-python $base/project4a.py --test-path $base $@ -m | tee runtests_4a.log
+python $base/project4a.py --test-path $base $@ | tee runtests_4a.log
 exit $?
