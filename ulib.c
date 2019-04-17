@@ -4,10 +4,10 @@
 #include "user.h"
 #include "x86.h"
 
-struct lock_t{
-  int ticknum;
-  int turn;
-}
+//struct lock_t{
+//  int ticknum;
+//  int turn;
+//}
 
 char*
 strcpy(char *s, const char *t)
@@ -112,18 +112,27 @@ memmove(void *vdst, const void *vsrc, int n)
 
 int thread_create(void (*start_routine)(void*, void*), void* arg1, void* arg2)
 {
+  lock_t l;
+  lock_init(&l);
+  lock_acquire(&l);
   void *stack = malloc(4096 * 2);
+  lock_release(&l);
   stack = stack + (4096 - (uint)stack % 4096);
   int id = clone(start_routine, arg1, arg2, stack);
   return id;
 }
 int thread_join()
 {
+ lock_t l;
  void *stack = malloc(sizeof(void*));
  int val;
-
  val = join(&stack);
+
+ lock_init(&l);
+ lock_acquire(&l);
  free(stack);
+ lock_release(&l);
+
  return val;
 }
 
@@ -135,15 +144,18 @@ void lock_init(lock_t* lock)
 
 void lock_acquire(lock_t* lock)
 {
-  
+  int myturn = fetch_and_add(&lock->ticknum,1); 
+  while(lock->turn != myturn){
+    
+  } 
 }
 
 void lock_release(lock_t* lock)
 {
-  
+  fetch_and_add(&lock->turn,1);
 }
 
-int fetch_and_add(uint loc, int inc){
+int fetch_and_add(int* loc, int inc){
   int val = *loc;
   *loc = val + inc;
   return val;
