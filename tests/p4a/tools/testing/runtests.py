@@ -38,7 +38,7 @@ parser.add_option("-v", "--valgrind", action="store_true", dest="valgrind",
 parser.add_option("-b", "--no-build", action="store_false", dest="build",
       default=True,
       help="do not automatically run build test before running other tests")
-parser.add_option("-f", "--factor", dest="factor", default=1,
+parser.add_option("-f", "-m", "--factor", dest="factor", default=1,
       help="multiply all timeout lengths by FACTOR")
 
 
